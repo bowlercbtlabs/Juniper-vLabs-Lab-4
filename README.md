@@ -1,4 +1,4 @@
-# Juniper-vLabs-Lab-4-Network-Address-Translation-NAT-Source-Interface-and-IP-Pool-
+# Juniper-vLabs-Lab-4
 Juniper vLabs Lab 4 (Network Address Translation NAT, Source Interface and IP Pool)
 
 In this video I configure and explain the following:  
