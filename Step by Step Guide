@@ -2,10 +2,10 @@ Juniper vLabs Lab 4 (Network Address Translation NAT, Source Interface and IP Po
 
 Step By Step Guide:
 
-1) Login to vLabs and Reserve/Launch the Lab (should take a few minutes to start up)
+1) Login to vLabs and Reserve/Launch the Lab (should take a few minutes to start up).
     - https://jlabs.juniper.net/vlabs/portal/zones-policies/
 
-2) Lets start by changing the IP addresses on the interfaces between the vSRX and Host3
+2) Lets start by changing the IP addresses on the interfaces between the vSRX and Host3.
 
 Host3:
 delete interfaces ge-0/0/2.0 family inet address 10.100.13.2/24 
@@ -16,7 +16,7 @@ vSRX:
 delete interfaces ge-0/0/2.0 family inet address 10.100.13.1/24
 set interfaces ge-0/0/2 unit 0 family inet address 200.0.0.1/30
 
-3) We do this to simulate the connection between Host3 and the vSRX being a publicly routed, external subnet. Now try to ping from Host1 to Host3
+3) We do this to simulate the connection between Host3 and the vSRX being a publicly routed, external subnet. Now try to ping from Host1 to Host3.
 
 jcluser@Host1> ping 200.0.0.2 rapid count 5    
 PING 200.0.0.2 (200.0.0.2): 56 data bytes
@@ -24,14 +24,14 @@ PING 200.0.0.2 (200.0.0.2): 56 data bytes
 --- 200.0.0.2 ping statistics ---
 5 packets transmitted, 0 packets received, 100% packet loss
 
-4) We see that the pings have failed, lets do a security flow session on the vSRX to troubleshoot
+4) We see that the pings have failed, lets do a security flow session on the vSRX to troubleshoot.
 
 jcluser@vSRX1> show security flow session    
 Session ID: 182, Policy name: default-permit/5, State: Stand-alone, Timeout: 56, Valid
   In: 10.100.11.2/4384 --> 200.0.0.2/0;icmp, Conn Tag: 0x0, If: ge-0/0/0.0, Pkts: 1, Bytes: 84, 
   Out: 200.0.0.2/0 --> 10.100.11.2/4384;icmp, Conn Tag: 0x0, If: ge-0/0/2.0, Pkts: 0, Bytes: 0, 
 
-5) We see that the vSRX is showing packets enter in from Host1, but we do not see any replies from Host3. Lets look at Host3's routing table
+5) We see that the vSRX is showing packets enter in from Host1, but we do not see any replies from Host3. Lets look at Host3's routing table.
 
 jcluser@Host3> show route 
 
@@ -50,9 +50,17 @@ inet.0: 5 destinations, 5 routes (5 active, 0 holddown, 0 hidden)
                       Local via ge-0/0/2.0
 
 6) As we can see, Host3 doesn't have any private IP subnets listed in its route table, and the default route is setup in the lab through fxp0.0 
-most likely for reachbility through the management network to the device. This is a normal configuration. Lets now setup a policy on the firewall
+most likely for reachbility through the management network to the device. This is a normal configuration. Lets now setup a NAT policy on the firewall
 to perform NAT on its external interface so that traffic sourced from Host1 (10.100.11.2) now shows up sourced from the firewalls external interface
-towards Host3 (200.0.0.1 - ge-0/0/2.0)
+towards Host3 in the UNTRUST zone (200.0.0.1 - ge-0/0/2.0).
+
+set security nat source rule-set HOST1_TO_UNTRUST from zone trust
+set security nat source rule-set HOST1_TO_UNTRUST to zone untrust
+set security nat source rule-set HOST1_TO_UNTRUST rule INTERFACE_NAT match source-address 0.0.0.0/0
+set security nat source rule-set HOST1_TO_UNTRUST rule INTERFACE_NAT match destination-address 0.0.0.0/0
+set security nat source rule-set HOST1_TO_UNTRUST rule INTERFACE_NAT then source-nat interface
+
+7) Now lets try the ping again from Host1 to Host3 and see the results.
 
 
 
