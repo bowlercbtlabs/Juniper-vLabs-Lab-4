@@ -16,7 +16,11 @@ vSRX:
 delete interfaces ge-0/0/2.0 family inet address 10.100.13.1/24
 set interfaces ge-0/0/2 unit 0 family inet address 200.0.0.1/30
 
-3) We do this to simulate the connection between Host3 and the vSRX being a publicly routed, external subnet. Now try to ping from Host1 to Host3.
+3) We do this to simulate the connection between Host3 and the vSRX being a publicly routed, external subnet. Now lets add a static route in Host1
+so that it knows how to reach the external subnet of 200.0.0.0/30 through the firewall. We will also try to ping from Host1 to Host3.
+
+jcluser@Host1#
+set routing-options static route 200.0.0.0/30 next-hop 10.100.11.1
 
 jcluser@Host1> ping 200.0.0.2 rapid count 5    
 PING 200.0.0.2 (200.0.0.2): 56 data bytes
@@ -62,6 +66,43 @@ set security nat source rule-set HOST1_TO_UNTRUST rule INTERFACE_NAT then source
 
 7) Now lets try the ping again from Host1 to Host3 and see the results.
 
+jcluser@Host1> ping 200.0.0.2 rapid count 5    
+PING 200.0.0.2 (200.0.0.2): 56 data bytes
+!!!!!
+--- 200.0.0.2 ping statistics ---
+5 packets transmitted, 5 packets received, 0% packet loss
+round-trip min/avg/max/stddev = 1.204/1.489/1.865/0.222 ms
 
+jcluser@vSRX1> show security flow session | refresh 
+---(refreshed at 2024-04-08 23:33:59 UTC)---
+Total sessions: 0
+---(refreshed at 2024-04-08 23:34:15 UTC)---
+Session ID: 202, Policy name: default-permit/5, State: Stand-alone, Timeout: 2, Valid
+  In: 10.100.11.2/17184 --> 200.0.0.2/0;icmp, Conn Tag: 0x0, If: ge-0/0/0.0, Pkts: 1, Bytes: 84, 
+  Out: 200.0.0.2/0 --> 200.0.0.1/21143;icmp, Conn Tag: 0x0, If: ge-0/0/2.0, Pkts: 1, Bytes: 84, 
 
+8) We can see that the ping is successful, we can also use the security flow session command to verify the NAT is occuring. We see that in the "OUT" line that
+the traffic is returning the the interface IP on the vSRX and not to the source address of HOST1, this is because of the NAT interface policy we created. We can
+also check to see if our policy is getting hits/matches with the following command:
 
+jcluser@vSRX1> show security nat source rule INTERFACE_NAT 
+source NAT rule: INTERFACE_NAT          Rule-set: HOST1_TO_UNTRUST
+  Rule-Id                    : 1
+  Rule position              : 1
+  From zone                  : trust
+  To zone                    : untrust
+  Match
+    Source addresses         : 0.0.0.0         - 255.255.255.255
+    Destination addresses    : 0.0.0.0         - 255.255.255.255
+  Action                        : interface
+    Persistent NAT type         : N/A 
+    Persistent NAT mapping type : address-port-mapping 
+    Inactivity timeout          : 0
+    Max session number          : 0
+  Translation hits           : 25
+    Successful sessions      : 25
+  Number of sessions         : 0
+
+9) In the show command above we see that we are getting translation hits which is further proof that the traffic is being matched on the NAT policy we created. 
+Lets add a static route in Host2 so that it knows how to reach the external subnet of 200.0.0.0/30 through the firewall and see if Host2 can ping the external 
+Host3 as well.
