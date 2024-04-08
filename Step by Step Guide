@@ -33,5 +33,27 @@ Session ID: 182, Policy name: default-permit/5, State: Stand-alone, Timeout: 56,
 
 5) We see that the vSRX is showing packets enter in from Host1, but we do not see any replies from Host3. Lets look at Host3's routing table
 
+jcluser@Host3> show route 
+
+inet.0: 5 destinations, 5 routes (5 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+0.0.0.0/0          *[Static/5] 00:39:23
+                    > to 100.123.0.1 via fxp0.0
+100.123.0.0/16     *[Direct/0] 00:39:23
+                    > via fxp0.0
+100.123.1.2/32     *[Local/0] 00:39:23
+                      Local via fxp0.0
+200.0.0.0/30       *[Direct/0] 00:26:41
+                    > via ge-0/0/2.0
+200.0.0.2/32       *[Local/0] 00:26:41
+                      Local via ge-0/0/2.0
+
+6) As we can see, Host3 doesn't have any private IP subnets listed in its route table, and the default route is setup in the lab through fxp0.0 
+most likely for reachbility through the management network to the device. This is a normal configuration. Lets now setup a policy on the firewall
+to perform NAT on its external interface so that traffic sourced from Host1 (10.100.11.2) now shows up sourced from the firewalls external interface
+towards Host3 (200.0.0.1 - ge-0/0/2.0)
+
+
 
 
