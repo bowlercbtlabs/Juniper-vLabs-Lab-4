@@ -16,8 +16,9 @@ vSRX:
 delete interfaces ge-0/0/2.0 family inet address 10.100.13.1/24
 set interfaces ge-0/0/2 unit 0 family inet address 200.0.13.1/30
 
-3) We do this to simulate the connection between Host3 and the vSRX being a publicly routed, external subnet. Now lets add a static route in Host1
-so that it knows how to reach the external subnet of 200.0.13.0/30 through the firewall. We will also try to ping from Host1 to Host3.
+3) We do this to simulate the connection between Host3 and the vSRX being a publicly routed, external subnet. Now lets add a 
+static route in Host1 so that it knows how to reach the external subnet of 200.0.13.0/30 through the firewall. We will also try 
+to ping from Host1 to Host3.
 
 jcluser@Host1# set routing-options static route 200.0.13.0/30 next-hop 10.100.11.1
 
@@ -35,7 +36,8 @@ Session ID: 256, Policy name: default-permit/5, State: Stand-alone, Timeout: 54,
   In: 10.100.11.2/9506 --> 200.0.13.2/0;icmp, Conn Tag: 0x0, If: ge-0/0/0.0, Pkts: 1, Bytes: 84, 
   Out: 200.0.13.2/0 --> 10.100.11.2/9506;icmp, Conn Tag: 0x0, If: ge-0/0/2.0, Pkts: 0, Bytes: 0, 
 
-5) We see that the vSRX is showing packets enter in from Host1, but we do not see any replies from Host3. Lets look at Host3's routing table.
+5) We see that the vSRX is showing packets enter in from Host1, but we do not see any replies from Host3. Lets look at Host3's 
+routing table.
 
 jcluser@Host3> show route 
 
@@ -53,10 +55,10 @@ inet.0: 5 destinations, 5 routes (5 active, 0 holddown, 0 hidden)
 200.0.13.2/32       *[Local/0] 00:26:41
                       Local via ge-0/0/2.0
 
-6) As we can see, Host3 doesn't have any private IP subnets listed in its route table, and the default route is setup in the lab through fxp0.0 
-most likely for reachbility through the management network to the device. This is a normal configuration. Lets now setup a NAT policy on the firewall
-to perform NAT on its external interface so that traffic sourced from Host1 (10.100.11.2) now shows up sourced from the firewalls external interface
-towards Host3 in the UNTRUST zone (200.0.0.1 - ge-0/0/2.0).
+6) As we can see, Host3 doesn't have any private IP subnets listed in its route table, and the default route is setup in the lab 
+through fxp0.0 most likely for reachbility through the management network to the device. This is a normal configuration. Lets now 
+setup a NAT policy on the firewall to perform NAT on its external interface so that traffic sourced from Host1 (10.100.11.2) now 
+shows up sourced from the firewalls external interface towards Host3 in the UNTRUST zone (200.0.0.1 - ge-0/0/2.0).
 
 set security nat source rule-set HOST1_TO_UNTRUST from zone trust
 set security nat source rule-set HOST1_TO_UNTRUST to zone untrust
@@ -81,9 +83,10 @@ Session ID: 251, Policy name: default-permit/5, State: Stand-alone, Timeout: 4, 
   In: 10.100.11.2/6434 --> 200.0.13.2/0;icmp, Conn Tag: 0x0, If: ge-0/0/0.0, Pkts: 1, Bytes: 84, 
   Out: 200.0.13.2/0 --> 200.0.13.1/28337;icmp, Conn Tag: 0x0, If: ge-0/0/2.0, Pkts: 1, Bytes: 84, 
 
-8) We can see that the ping is successful, we can also use the security flow session command to verify the NAT is occuring. We see that in the "OUT" line that
-the traffic is returning the the interface IP on the vSRX and not to the source address of HOST1, this is because of the NAT interface policy we created. We can
-also check to see if our policy is getting hits/matches with the following command:
+8) We can see that the ping is successful, we can also use the security flow session command to verify the NAT is occuring. We see 
+that in the "OUT" line that the traffic is returning the the interface IP on the vSRX and not to the source address of HOST1, this 
+is because of the NAT interface policy we created. We can also check to see if our policy is getting hits/matches with the 
+following command:
 
 jcluser@vSRX1> show security nat source rule INTERFACE_NAT 
 source NAT rule: INTERFACE_NAT          Rule-set: HOST1_TO_UNTRUST
@@ -103,9 +106,9 @@ source NAT rule: INTERFACE_NAT          Rule-set: HOST1_TO_UNTRUST
     Successful sessions      : 25
   Number of sessions         : 0
 
-9) In the show command above we see that we are getting translation hits which is further proof that the traffic is being matched on the NAT policy we created. 
-Lets add a static route in Host2 so that it knows how to reach the external subnet of 200.0.0.0/30 through the firewall and see if Host2 can ping the external 
-Host3 as well.
+9) In the show command above we see that we are getting translation hits which is further proof that the traffic is being matched 
+on the NAT policy we created. Lets add a static route in Host2 so that it knows how to reach the external subnet of 200.0.0.0/30 
+through the firewall and see if Host2 can ping the external Host3 as well.
 
 jcluser@Host2# set routing-options static route 200.0.13.0/30 next-hop 10.100.12.1  
 
