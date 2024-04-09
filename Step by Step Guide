@@ -60,11 +60,11 @@ through fxp0.0 most likely for reachbility through the management network to the
 setup a NAT policy on the firewall to perform NAT on its external interface so that traffic sourced from Host1 (10.100.11.2) now 
 shows up sourced from the firewalls external interface towards Host3 in the UNTRUST zone (200.0.0.1 - ge-0/0/2.0).
 
-set security nat source rule-set HOST1_TO_UNTRUST from zone trust
-set security nat source rule-set HOST1_TO_UNTRUST to zone untrust
-set security nat source rule-set HOST1_TO_UNTRUST rule INTERFACE_NAT match source-address 0.0.0.0/0
-set security nat source rule-set HOST1_TO_UNTRUST rule INTERFACE_NAT match destination-address 0.0.0.0/0
-set security nat source rule-set HOST1_TO_UNTRUST rule INTERFACE_NAT then source-nat interface
+set security nat source rule-set INTERNAL_HOSTS_TO_UNTRUST from zone trust
+set security nat source rule-set INTERNAL_HOSTS_TO_UNTRUST to zone untrust
+set security nat source rule-set INTERNAL_HOSTS_TO_UNTRUST rule INTERFACE_NAT match source-address 0.0.0.0/0
+set security nat source rule-set INTERNAL_HOSTS_TO_UNTRUST rule INTERFACE_NAT match destination-address 0.0.0.0/0
+set security nat source rule-set INTERNAL_HOSTS_TO_UNTRUST rule INTERFACE_NAT then source-nat interface
 
 7) Now lets try the ping again from Host1 to Host3 and see the results.
 
