@@ -9,31 +9,31 @@ Step By Step Guide:
 
 Host3:
 delete interfaces ge-0/0/2.0 family inet address 10.100.13.2/24 
-set interfaces ge-0/0/2 unit 0 family inet address 200.0.0.2/30
+set interfaces ge-0/0/2 unit 0 family inet address 200.0.13.2/30
 
 
 vSRX:
 delete interfaces ge-0/0/2.0 family inet address 10.100.13.1/24
-set interfaces ge-0/0/2 unit 0 family inet address 200.0.0.1/30
+set interfaces ge-0/0/2 unit 0 family inet address 200.0.13.1/30
 
 3) We do this to simulate the connection between Host3 and the vSRX being a publicly routed, external subnet. Now lets add a static route in Host1
-so that it knows how to reach the external subnet of 200.0.0.0/30 through the firewall. We will also try to ping from Host1 to Host3.
+so that it knows how to reach the external subnet of 200.0.13.0/30 through the firewall. We will also try to ping from Host1 to Host3.
 
-jcluser@Host1#
-set routing-options static route 200.0.0.0/30 next-hop 10.100.11.1
+jcluser@Host1# set routing-options static route 200.0.13.0/30 next-hop 10.100.11.1
 
-jcluser@Host1> ping 200.0.0.2 rapid count 5    
-PING 200.0.0.2 (200.0.0.2): 56 data bytes
+jcluser@Host1> ping 200.0.13.2 rapid count 5    
+PING 200.0.13.2 (200.0.13.2): 56 data bytes
 .....
---- 200.0.0.2 ping statistics ---
+--- 200.0.13.2 ping statistics ---
 5 packets transmitted, 0 packets received, 100% packet loss
 
 4) We see that the pings have failed, lets do a security flow session on the vSRX to troubleshoot.
 
-jcluser@vSRX1> show security flow session    
-Session ID: 182, Policy name: default-permit/5, State: Stand-alone, Timeout: 56, Valid
-  In: 10.100.11.2/4384 --> 200.0.0.2/0;icmp, Conn Tag: 0x0, If: ge-0/0/0.0, Pkts: 1, Bytes: 84, 
-  Out: 200.0.0.2/0 --> 10.100.11.2/4384;icmp, Conn Tag: 0x0, If: ge-0/0/2.0, Pkts: 0, Bytes: 0, 
+jcluser@vSRX1> show security flow session | refresh    
+---(refreshed at 2024-04-08 23:56:51 UTC)---
+Session ID: 256, Policy name: default-permit/5, State: Stand-alone, Timeout: 54, Valid
+  In: 10.100.11.2/9506 --> 200.0.13.2/0;icmp, Conn Tag: 0x0, If: ge-0/0/0.0, Pkts: 1, Bytes: 84, 
+  Out: 200.0.13.2/0 --> 10.100.11.2/9506;icmp, Conn Tag: 0x0, If: ge-0/0/2.0, Pkts: 0, Bytes: 0, 
 
 5) We see that the vSRX is showing packets enter in from Host1, but we do not see any replies from Host3. Lets look at Host3's routing table.
 
@@ -48,9 +48,9 @@ inet.0: 5 destinations, 5 routes (5 active, 0 holddown, 0 hidden)
                     > via fxp0.0
 100.123.1.2/32     *[Local/0] 00:39:23
                       Local via fxp0.0
-200.0.0.0/30       *[Direct/0] 00:26:41
+200.0.13.0/30       *[Direct/0] 00:26:41
                     > via ge-0/0/2.0
-200.0.0.2/32       *[Local/0] 00:26:41
+200.0.13.2/32       *[Local/0] 00:26:41
                       Local via ge-0/0/2.0
 
 6) As we can see, Host3 doesn't have any private IP subnets listed in its route table, and the default route is setup in the lab through fxp0.0 
@@ -66,20 +66,20 @@ set security nat source rule-set HOST1_TO_UNTRUST rule INTERFACE_NAT then source
 
 7) Now lets try the ping again from Host1 to Host3 and see the results.
 
-jcluser@Host1> ping 200.0.0.2 rapid count 5    
+jcluser@Host1> ping 200.0.13.2 rapid count 5    
 PING 200.0.0.2 (200.0.0.2): 56 data bytes
 !!!!!
 --- 200.0.0.2 ping statistics ---
 5 packets transmitted, 5 packets received, 0% packet loss
 round-trip min/avg/max/stddev = 1.204/1.489/1.865/0.222 ms
 
-jcluser@vSRX1> show security flow session | refresh 
----(refreshed at 2024-04-08 23:33:59 UTC)---
+jcluser@vSRX1> show security flow session | refresh    
+---(refreshed at 2024-04-08 23:55:20 UTC)---
 Total sessions: 0
----(refreshed at 2024-04-08 23:34:15 UTC)---
-Session ID: 202, Policy name: default-permit/5, State: Stand-alone, Timeout: 2, Valid
-  In: 10.100.11.2/17184 --> 200.0.0.2/0;icmp, Conn Tag: 0x0, If: ge-0/0/0.0, Pkts: 1, Bytes: 84, 
-  Out: 200.0.0.2/0 --> 200.0.0.1/21143;icmp, Conn Tag: 0x0, If: ge-0/0/2.0, Pkts: 1, Bytes: 84, 
+---(refreshed at 2024-04-08 23:55:25 UTC)---
+Session ID: 251, Policy name: default-permit/5, State: Stand-alone, Timeout: 4, Valid
+  In: 10.100.11.2/6434 --> 200.0.13.2/0;icmp, Conn Tag: 0x0, If: ge-0/0/0.0, Pkts: 1, Bytes: 84, 
+  Out: 200.0.13.2/0 --> 200.0.13.1/28337;icmp, Conn Tag: 0x0, If: ge-0/0/2.0, Pkts: 1, Bytes: 84, 
 
 8) We can see that the ping is successful, we can also use the security flow session command to verify the NAT is occuring. We see that in the "OUT" line that
 the traffic is returning the the interface IP on the vSRX and not to the source address of HOST1, this is because of the NAT interface policy we created. We can
@@ -106,3 +106,25 @@ source NAT rule: INTERFACE_NAT          Rule-set: HOST1_TO_UNTRUST
 9) In the show command above we see that we are getting translation hits which is further proof that the traffic is being matched on the NAT policy we created. 
 Lets add a static route in Host2 so that it knows how to reach the external subnet of 200.0.0.0/30 through the firewall and see if Host2 can ping the external 
 Host3 as well.
+
+jcluser@Host2# set routing-options static route 200.0.13.0/30 next-hop 10.100.12.1  
+
+[edit]
+jcluser@Host2# commit and-quit 
+commit complete
+Exiting configuration mode
+
+jcluser@Host2> ping 200.0.13.2 rapid count 5 
+PING 200.0.0.2 (200.0.0.2): 56 data bytes
+!!!!!
+
+jcluser@vSRX1> show security flow session | refresh         
+---(refreshed at 2024-04-08 23:53:58 UTC)---
+Total sessions: 0
+---(refreshed at 2024-04-08 23:54:08 UTC)---
+Session ID: 241, Policy name: default-permit/5, State: Stand-alone, Timeout: 2, Valid
+  In: 10.100.12.2/57889 --> 200.0.13.2/0;icmp, Conn Tag: 0x0, If: ge-0/0/1.0, Pkts: 1, Bytes: 84, 
+  Out: 200.0.13.2/0 --> 200.0.13.1/26100;icmp, Conn Tag: 0x0, If: ge-0/0/2.0, Pkts: 1, Bytes: 84, 
+
+
+10) That is the end of the lab! We've successfully verified that our Interface NAT policy is working on both Host1 and Host2.
